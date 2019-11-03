@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "634718918964",
+    "firebase_url": "https://receipt-fb518.firebaseio.com",
+    "project_id": "receipt-fb518",
+    "storage_bucket": "receipt-fb518.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:634718918964:android:46f2cb356e56b0440ced61",
+        "android_client_info": {
+          "package_name": "com.example.receipt"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "634718918964-lasa7gh90mjjm12r1jbqbm5vgkpf063f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.receipt",
+            "certificate_hash": "62781ac70e0ca04531e775229358fb179578f4a6"
+          }
+        },
+        {
+          "client_id": "634718918964-6053dgiatpnim1grib629o2vk2g83hkf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDakg3PQzPwTKl7n-smTCpDHcQzZObxq-Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "634718918964-6053dgiatpnim1grib629o2vk2g83hkf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
