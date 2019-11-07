@@ -10,10 +10,10 @@ import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.net.Uri;
@@ -46,6 +46,7 @@ import com.google.firebase.ml.vision.document.FirebaseVisionDocumentTextRecogniz
 import com.google.firebase.ml.vision.text.FirebaseVisionText;
 import com.google.firebase.ml.vision.text.FirebaseVisionTextRecognizer;
 import com.google.firebase.ml.vision.text.RecognizedLanguage;
+import com.soundcloud.android.crop.Crop;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -63,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
     private String imageFilePath = "";
     private Uri photoURI1;
     private Uri oldPhotoURI;
+    private Uri tempUri;
     private Bitmap bitmap;
     private ProgressDialog p;
     private String srcText;
@@ -70,6 +72,7 @@ public class MainActivity extends AppCompatActivity {
     Task<FirebaseVisionText> result;
     String s ="";
     String results;
+
 
     private static final int REQUEST_IMAGE1_CAPTURE = 1;
     int PERMISSION_ALL = 1;
@@ -87,45 +90,6 @@ public class MainActivity extends AppCompatActivity {
 
     String textFilePath = "";
     File textFile;
-
-    private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
-    static {
-        ORIENTATIONS.append(Surface.ROTATION_0, 90);
-        ORIENTATIONS.append(Surface.ROTATION_90, 0);
-        ORIENTATIONS.append(Surface.ROTATION_180, 270);
-        ORIENTATIONS.append(Surface.ROTATION_270, 180);
-    }
-
-    public static int getOrientation(Context context) {
-        Display display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
-        int rotation = display.getRotation();
-        int orientation;
-        boolean expectPortrait;
-        switch (rotation) {
-            case Surface.ROTATION_0:
-            default:
-                orientation = 90;
-                expectPortrait = true;
-                break;
-            case Surface.ROTATION_90:
-                orientation = 0;
-                expectPortrait = false;
-                break;
-            case Surface.ROTATION_180:
-                orientation = 270;
-                expectPortrait = true;
-                break;
-            case Surface.ROTATION_270:
-                orientation = 180;
-                expectPortrait = false;
-                break;
-        }
-        boolean isPortrait = display.getHeight() > display.getWidth();
-        if (isPortrait != expectPortrait) {
-            orientation = (orientation + 270) % 360;
-        }
-        return orientation;
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -199,6 +163,7 @@ public class MainActivity extends AppCompatActivity {
                 oldPhotoURI = photoURI1;
                 photoURI1 = Uri.fromFile(photoFile);
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI1);
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
                 startActivityForResult(takePictureIntent, REQUEST_IMAGE1_CAPTURE);
             }
         }
@@ -211,11 +176,28 @@ public class MainActivity extends AppCompatActivity {
         switch (requestCode) {
             case REQUEST_IMAGE1_CAPTURE: {
                 if (resultCode == RESULT_OK) {
-                    AsyncTaskExample asyncTaskExample = new AsyncTaskExample();
-                    asyncTaskExample.execute();
+                    try{
+                        Uri source = photoURI1;
+                        Uri dest = Uri.fromFile(new File(getCacheDir(), "cropped"));
+                        Crop.of(source, dest).start(MainActivity.this);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+
                 }
                 else if (resultCode == RESULT_CANCELED) {
                     Toast.makeText(this, "You cancelled the operation", Toast.LENGTH_SHORT).show();
+                }
+            }
+            case Crop.REQUEST_CROP:{
+                if(resultCode == RESULT_OK){
+                    tempUri = Crop.getOutput(data);
+                    Log.i("hello", "Hello");
+                    //imageView.setImageURI(tempUri);
+                    Log.i("hello", "Hello");
+
+                    AsyncTaskExample asyncTaskExample = new AsyncTaskExample();
+                    asyncTaskExample.execute();
                 }
             }
         }
@@ -226,12 +208,10 @@ public class MainActivity extends AppCompatActivity {
         protected Bitmap doInBackground(String... strings) {
 
             try {
-                InputStream is = context.getContentResolver().openInputStream(photoURI1);
+                InputStream is = context.getContentResolver().openInputStream(tempUri);
                 final BitmapFactory.Options options = new BitmapFactory.Options();
                 bitmap = BitmapFactory.decodeStream(is, null, options);
-                int rotation = getOrientation(context);
-                //FirebaseVisionImage image = FirebaseVisionImage.fromMediaImage(bitmap, rotation);
-                Log.i("Rotation", Integer.toString(rotation));
+
             } catch (Exception ex) {
                 Log.i(getClass().getSimpleName(), ex.getMessage());
                 Toast.makeText(context, "Error", Toast.LENGTH_SHORT).show();
@@ -335,41 +315,13 @@ public class MainActivity extends AppCompatActivity {
                 });*/
     }
 
-    private void processTextRecognitionResult(FirebaseVisionDocumentText texts) {
-        String result = "";
-        String blockText = "";
-        String lineText = "";
-        for (FirebaseVisionDocumentText.Block block: texts.getBlocks()) {
-            blockText = block.getText();
-            Float blockConfidence = block.getConfidence();
-            List<RecognizedLanguage> blockRecognizedLanguages = block.getRecognizedLanguages();
-            Rect blockFrame = block.getBoundingBox();
-            for (FirebaseVisionDocumentText.Paragraph paragraph: block.getParagraphs()) {
-                String paragraphText = paragraph.getText();
-                Float paragraphConfidence = paragraph.getConfidence();
-                List<RecognizedLanguage> paragraphRecognizedLanguages = paragraph.getRecognizedLanguages();
-                Rect paragraphFrame = paragraph.getBoundingBox();
-                for (FirebaseVisionDocumentText.Word word: paragraph.getWords()) {
-                    String wordText = word.getText();
-                    Float wordConfidence = word.getConfidence();
-                    List<RecognizedLanguage> wordRecognizedLanguages = word.getRecognizedLanguages();
-                    Rect wordFrame = word.getBoundingBox();
-                    for (FirebaseVisionDocumentText.Symbol symbol: word.getSymbols()) {
-                        String symbolText = symbol.getText();
-                        Float symbolConfidence = symbol.getConfidence();
-                        List<RecognizedLanguage> symbolRecognizedLanguages = symbol.getRecognizedLanguages();
-                        Rect symbolFrame = symbol.getBoundingBox();
-                    }
-                }
-            }
-        }
-        textView.setText(blockText);
-    }
-
     private void processTextRecognitionResult(FirebaseVisionText texts) {
+
         String result = "";
         String blockText = "";
         String lineText = "";
+        List<RecognizedLanguage> lineLanguages;
+
         for (FirebaseVisionText.TextBlock block: texts.getTextBlocks()) {
             blockText += block.getText() +"\r";
             Float blockConfidence = block.getConfidence();
@@ -379,11 +331,11 @@ public class MainActivity extends AppCompatActivity {
             for (FirebaseVisionText.Line line: block.getLines()) {
                 lineText += line.getText()+ "\n";
                 Float lineConfidence = line.getConfidence();
-                List<RecognizedLanguage> lineLanguages = line.getRecognizedLanguages();
+                lineLanguages = line.getRecognizedLanguages();
                 Point[] lineCornerPoints = line.getCornerPoints();
                 Rect lineFrame = line.getBoundingBox();
                 for (FirebaseVisionText.Element element: line.getElements()) {
-                    result += element.getText() + "\r";
+                    result += element.getText() + "\n";
                     Float elementConfidence = element.getConfidence();
                     List<RecognizedLanguage> elementLanguages = element.getRecognizedLanguages();
                     Point[] elementCornerPoints = element.getCornerPoints();
@@ -392,12 +344,13 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
-        textView.setText(lineText);
+        textView.setText(result);
+
 
         try{
             FileOutputStream stream = new FileOutputStream(textFilePath);
             OutputStreamWriter outputStreamWriter = new OutputStreamWriter(stream);
-            outputStreamWriter.append(textView.getText());
+            outputStreamWriter.append(lineText);
             outputStreamWriter.close();
             stream.close();
         }catch (IOException e){
